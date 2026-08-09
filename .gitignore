@@ -1,3 +1,6 @@
+bin/
+obj/
+
 # Compiled Lua sources
 luac.out
 

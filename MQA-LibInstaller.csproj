@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <RootNamespace>MQA-LibInstaller</RootNamespace>
+    <OutputType>Library</OutputType>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <PublishAot>true</PublishAot>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Drawing.Common" Version="10.0.10" />
+    <PackageReference Include="System.Resources.Extensions" Version="10.0.10" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="MapleLib">
+      <HintPath>./MapleLib.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+</Project>
