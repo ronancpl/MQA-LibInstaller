@@ -44,6 +44,20 @@ public class WzPngInstaller
         return (text[0], text[1], text[2]);
     }
 
+    private static bool isMatchAsterisk(string folderName, string pattern)
+    {
+        if (pattern.StartsWith("*"))
+        {
+            return folderName.EndsWith(pattern.Substring(pattern.LastIndexOf("*") + 1));
+        }
+        else if (pattern.EndsWith("*"))
+        {
+            return folderName.StartsWith(pattern.Substring(0, pattern.IndexOf("*")));
+        }
+
+        return false;
+    }
+
     private static void ExtractBitmapFromWzNode(WzImageProperty wzDir, string[] sp, int i) {
         if (i >= sp.Length && wzDir is WzCanvasProperty)
         {
@@ -71,7 +85,7 @@ public class WzPngInstaller
         {
             foreach (WzImageProperty wzProperty in wzDir.WzProperties)
             {
-                if (i >= sp.Length || sp[i].StartsWith("*") || Regex.IsMatch(wzProperty.Name.ToLower(), sp[i].ToLower()))
+                if (i >= sp.Length || isMatchAsterisk(wzProperty.Name.ToLower(), sp[i]) || Regex.IsMatch(wzProperty.Name.ToLower(), Regex.Escape(sp[i].ToLower())))
                 {
                     imgPathStr = imgPathStr + wzProperty.Name + ".";
                     
@@ -80,9 +94,51 @@ public class WzPngInstaller
                     imgPathStr = imgPathStr.Substring(0, imgPathStr.Length - 1);
                     imgPathStr = imgPathStr.Substring(0, imgPathStr.LastIndexOf(".") + 1);
                     
-                    if (i < sp.Length && !sp[i].StartsWith("*")) break;
+                    if (i < sp.Length && !isMatchAsterisk(wzProperty.Name.ToLower(), sp[i])) break;
                 }
             }    
+        }
+    }
+
+    private static void ExtractBitmapFromWzDirectory(WzDirectory folder, string[] sp, int i, string[] sp2)
+    {
+        if (i >= sp.Length - 1)
+        {
+            foreach (WzImage wzDir in folder.WzImages)
+            {
+                if (sp[sp.Length - 1] == "*.img" || Regex.IsMatch(wzDir.Name.ToLower(), Regex.Escape(sp[sp.Length - 1].ToLower())))
+                {
+                    imgPathStr = imgPathStr + wzDir.Name + "/";
+
+                    foreach (WzImageProperty wzProperty in wzDir.WzProperties)
+                    {
+                        if (isMatchAsterisk(wzProperty.Name.ToLower(), sp2[0]) || Regex.IsMatch(wzProperty.Name.ToLower(), Regex.Escape(sp2[0].ToLower())))
+                        {
+                            imgPathStr = imgPathStr + wzProperty.Name + ".";
+                            
+                            ExtractBitmapFromWzNode(wzProperty, sp2, 1);
+
+                            imgPathStr = imgPathStr.Substring(0, imgPathStr.Length - 1);
+                            imgPathStr = imgPathStr.Substring(0, imgPathStr.LastIndexOf("/") + 1);
+                            
+                            if (!isMatchAsterisk(wzProperty.Name.ToLower(), sp2[0])) break;
+                        }
+                    }
+
+                    imgPathStr = imgPathStr.Substring(0, imgPathStr.Length - 1);
+                    imgPathStr = imgPathStr.Substring(0, imgPathStr.LastIndexOf("/") + 1);
+                    
+                    if (sp[sp.Length - 1] != "*.img") break;
+                }
+            }
+        }
+
+        foreach (WzDirectory wzFolder in folder.WzDirectories)
+        {
+            if (i >= sp.Length || isMatchAsterisk(wzFolder.Name.ToLower(), sp[i]) || Regex.IsMatch(wzFolder.Name.ToLower(), Regex.Escape(sp[i].ToLower())))
+            {
+                ExtractBitmapFromWzDirectory(wzFolder, sp, i + 1, sp2);
+            }
         }
     }
 
@@ -96,53 +152,13 @@ public class WzPngInstaller
             imgPathStr = imgPathStr + wz + "/";
 
             string[] sp = img.Split("/");
+            string[] sp2 = sub.Split(".");
 
             // Access the root directory
             WzDirectory root = wzFile.WzDirectory;
             
-            WzDirectory folder = root;
-            for(int i = 0; i < sp.Length - 2; i++)
-            {
-                imgPathStr = imgPathStr + folder.Name + "/";
-                folder = folder.GetDirectoryByName(sp[i]);
-            }
-
-            string[] sp2 = sub.Split(".");
+            ExtractBitmapFromWzDirectory(root, sp, 0, sp2);
             
-            foreach (WzImage wzDir in folder.WzImages)
-            {
-                if (sp[sp.Length - 1] == "*.img" || Regex.IsMatch(wzDir.Name.ToLower(), sp[sp.Length - 1].ToLower()))
-                {
-                    imgPathStr = imgPathStr + wzDir.Name + "/";
-
-                    foreach (WzImageProperty wzProperty in wzDir.WzProperties)
-                    {
-                        if (sp2[0].StartsWith("*") || Regex.IsMatch(wzProperty.Name.ToLower(), sp2[0].ToLower()))
-                        {
-                            imgPathStr = imgPathStr + wzProperty.Name + ".";
-                            
-                            ExtractBitmapFromWzNode(wzProperty, sp2, 1);
-
-                            imgPathStr = imgPathStr.Substring(0, imgPathStr.Length - 1);
-                            imgPathStr = imgPathStr.Substring(0, imgPathStr.LastIndexOf("/") + 1);
-                            
-                            if (!sp2[0].StartsWith("*")) break;
-                        }
-                    }
-
-                    imgPathStr = imgPathStr.Substring(0, imgPathStr.Length - 1);
-                    imgPathStr = imgPathStr.Substring(0, imgPathStr.LastIndexOf("/") + 1);
-                    
-                    if (sp[sp.Length - 1] != "*.img") break;
-                }
-            }
-
-            for(int i = 0; i < sp.Length - 2; i++)
-            {
-                imgPathStr = imgPathStr.Substring(0, imgPathStr.Length - 1);
-                imgPathStr = imgPathStr.Substring(0, imgPathStr.LastIndexOf("/") + 1);
-            }
-
             imgPathStr = imgPathStr.Substring(0, imgPathStr.Length - 1);
             imgPathStr = imgPathStr.Substring(0, imgPathStr.LastIndexOf("/") + 1);
         }
