@@ -18,6 +18,7 @@
 
 // Declare the signature of the exported C# function
 extern "C" __declspec(dllimport) int cs_extract_bitmap(char *maplePath, char *filePath, char *wzPath);
+extern "C" __declspec(dllimport) int cs_extract_xml(char *maplePath, char *filePath, char *wzPath);
 
 static int c_extract_bitmap(lua_State *L) {
     char *maplePath = (char *)lua_tostring(L, 1);
@@ -28,9 +29,19 @@ static int c_extract_bitmap(lua_State *L) {
     return 0;
 }
 
+static int c_extract_xml(lua_State *L) {
+    char *maplePath = (char *)lua_tostring(L, 1);
+    char *filePath = (char *)lua_tostring(L, 2);
+    char *wzPath = (char *)lua_tostring(L, 3);
+
+    cs_extract_xml(maplePath, filePath, wzPath);
+    return 0;
+}
+
 // Define array of functions mapping Lua names to C functions
 static const struct luaL_Reg WzBmp[] = {
     {"c_extract_bitmap", c_extract_bitmap},
+    {"c_extract_xml", c_extract_xml},
     {NULL, NULL}  /* sentinel */
 };
 

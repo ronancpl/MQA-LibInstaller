@@ -1,4 +1,5 @@
 images/
+xml/
 bin/
 obj/
 
@@ -43,3 +44,6 @@ luac.out
 *.x86_64
 *.hex
 
+# Other files
+*.pdb
+*.deps.json

@@ -236,4 +236,91 @@ public class WzPngInstaller
         return 0;
     }
 
+    private static void ExtractXmlsFromWzDirectory(WzDirectory folder, string[] sp, int i)
+    {
+        if (i >= sp.Length - 1)
+        {
+            foreach (WzImage wzDir in folder.WzImages)
+            {
+                if (sp[sp.Length - 1] == "*.img" || IsMatchAsterisk(wzDir.Name, sp[i]) || IsMatchRegular(wzDir.Name, sp[sp.Length - 1]))
+                {
+                    imgPathStr = imgPathStr + wzDir.Name + "/";
+
+                    string filePathStr2 = $"{filePathStr}{imgPathStr.Substring(0, imgPathStr.Length - 1)}.xml";
+
+                    Directory.CreateDirectory(filePathStr2.Substring(0, filePathStr2.LastIndexOf('/')));
+                    using (StreamWriter writer = new StreamWriter(filePathStr2))
+                    {
+                        wzDir.ExportXml(writer, true, 0);
+                    }
+                    Console.WriteLine($"Saved into '{filePathStr2}'");
+
+                    imgPathStr = imgPathStr.Substring(0, imgPathStr.Length - 1);
+                    imgPathStr = imgPathStr.Substring(0, imgPathStr.LastIndexOf("/") + 1);
+                    
+                    if (!IsMatchAsterisk(wzDir.Name.ToLower(), sp[sp.Length - 1]) && !sp[sp.Length - 1].Contains("*") && !sp[sp.Length - 1].Contains("\\")) break;
+                }
+            }
+        }
+
+        foreach (WzDirectory wzFolder in folder.WzDirectories)
+        {
+            if (i >= sp.Length || IsMatchAsterisk(wzFolder.Name, sp[i]) || IsMatchRegular(wzFolder.Name, sp[i]))
+            {
+                imgPathStr = imgPathStr + wzFolder.Name + "/";
+
+                ExtractXmlsFromWzDirectory(wzFolder, sp, i + 1);
+                    
+                imgPathStr = imgPathStr.Substring(0, imgPathStr.Length - 1);
+                imgPathStr = imgPathStr.Substring(0, imgPathStr.LastIndexOf("/") + 1);
+            }
+        }
+    }
+
+    private static void ExtractXmlsFromWz(string msPath, string wz, string path)
+    {
+        WzFile wzFile = new WzFile(msPath + "/" + wz, WzMapleVersion.GMS);
+        try
+        {
+            wzFile.ParseWzFile();
+
+            imgPathStr = imgPathStr + wz + "/";
+
+            string[] sp = path.Split("/");
+
+            // Access the root directory
+            WzDirectory root = wzFile.WzDirectory;
+            
+            ExtractXmlsFromWzDirectory(root, sp, 0);
+            
+            imgPathStr = imgPathStr.Substring(0, imgPathStr.Length - 1);
+            imgPathStr = imgPathStr.Substring(0, imgPathStr.LastIndexOf("/") + 1);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading .wz file: {ex}");
+        }
+        finally
+        {
+            wzFile.Dispose(); // Always dispose to free resources
+            imgPathStr = "/";
+        }
+    }
+
+    [UnmanagedCallersOnly(EntryPoint = "cs_extract_xml")]
+    public static int cs_extract_xml(IntPtr maplePath, IntPtr filePath, IntPtr wzPath)
+    {
+        string msPathStr = Marshal.PtrToStringAnsi(maplePath);
+        filePathStr = Marshal.PtrToStringAnsi(filePath);
+        string wzPathStr = Marshal.PtrToStringAnsi(wzPath);
+
+        var tuple = GetPathNames(wzPathStr);
+        string wz = tuple.wz;
+        img = tuple.img;
+
+        ExtractXmlsFromWz(msPathStr, wz, img);
+
+        return 0;
+    }
+
 }

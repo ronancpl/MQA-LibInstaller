@@ -14,7 +14,9 @@ WzBmp = require("WzBmp")
 
 local msBaseDir = "C:/Nexon/MapleStory"
 local imgFolderPath = "C:/Nexon/MQA-LibInstaller/images"
+local xmlFolderPath = "C:/Nexon/MQA-LibInstaller/xml"
 
+-- BITMAP section
 WzBmp.c_extract_bitmap(msBaseDir, imgFolderPath, "Map.wz/MapHelper.img/worldMap/*")
 WzBmp.c_extract_bitmap(msBaseDir, imgFolderPath, "Map.wz/WorldMap/*.img/*")
 WzBmp.c_extract_bitmap(msBaseDir, imgFolderPath, "UI.wz/Basic.img/Notice3.*")
@@ -56,4 +58,26 @@ WzBmp.c_extract_bitmap(msBaseDir, imgFolderPath, "Character.wz/*/*.img/info.icon
 WzBmp.c_extract_bitmap(msBaseDir, imgFolderPath, "Mob.wz/*.img/stand.0")
 WzBmp.c_extract_bitmap(msBaseDir, imgFolderPath, "Mob.wz/*.img/fly.0")
 WzBmp.c_extract_bitmap(msBaseDir, imgFolderPath, "Npc.wz/*.img/stand.0")
-WzBmp.c_extract_bitmap(msBaseDir, imgFolderPath, "UI.wz/Basic.img/BtClose.*")
+
+-- XML section
+WzBmp.c_extract_xml(msBaseDir, xmlFolderPath, "Item.wz/*/*")
+WzBmp.c_extract_xml(msBaseDir, xmlFolderPath, "Map.wz/WorldMap/*")
+WzBmp.c_extract_xml(msBaseDir, xmlFolderPath, "Map.wz/MapHelper.img")
+WzBmp.c_extract_xml(msBaseDir, xmlFolderPath, "Mob.wz/*")
+WzBmp.c_extract_xml(msBaseDir, xmlFolderPath, "Npc.wz/*")
+WzBmp.c_extract_xml(msBaseDir, xmlFolderPath, "Quest.wz/Act.img")
+WzBmp.c_extract_xml(msBaseDir, xmlFolderPath, "Quest.wz/Check.img")
+WzBmp.c_extract_xml(msBaseDir, xmlFolderPath, "Quest.wz/QuestInfo.img")
+WzBmp.c_extract_xml(msBaseDir, xmlFolderPath, "String.wz/Cash.img")
+WzBmp.c_extract_xml(msBaseDir, xmlFolderPath, "String.wz/Consume.img")
+WzBmp.c_extract_xml(msBaseDir, xmlFolderPath, "String.wz/Eqp.img")
+WzBmp.c_extract_xml(msBaseDir, xmlFolderPath, "String.wz/Etc.img")
+WzBmp.c_extract_xml(msBaseDir, xmlFolderPath, "String.wz/Ins.img")
+WzBmp.c_extract_xml(msBaseDir, xmlFolderPath, "String.wz/Map.img")
+WzBmp.c_extract_xml(msBaseDir, xmlFolderPath, "String.wz/Mob.img")
+WzBmp.c_extract_xml(msBaseDir, xmlFolderPath, "String.wz/Npc.img")
+WzBmp.c_extract_xml(msBaseDir, xmlFolderPath, "UI.wz/Basic.img")
+WzBmp.c_extract_xml(msBaseDir, xmlFolderPath, "UI.wz/GuildBBS.img")
+WzBmp.c_extract_xml(msBaseDir, xmlFolderPath, "UI.wz/ITC.img")
+WzBmp.c_extract_xml(msBaseDir, xmlFolderPath, "UI.wz/StatusBar.img")
+WzBmp.c_extract_xml(msBaseDir, xmlFolderPath, "UI.wz/UIWindow.img")
