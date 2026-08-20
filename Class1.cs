@@ -10,10 +10,11 @@
     provide an express grant of patent rights.
 */
 using System;
-using System.IO;
-using System.Text.RegularExpressions;
-using System.Runtime.InteropServices;
+using System.Collections.Generic;
 using System.Drawing;
+using System.IO;
+using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
 
 using MapleLib.WzLib;
 using MapleLib.WzLib.WzProperties;
@@ -25,6 +26,8 @@ public class WzPngInstaller
     private static string imgPathStr = "/";
     private static string img;
     private static string sub;
+
+    private static Stack<WzObject> stack = new Stack<WzObject>();
 
     private static (string wz, string img, string sub) GetPathNames(string fullPath)
     {
@@ -99,8 +102,95 @@ public class WzPngInstaller
         return imgPathStr.Substring(0, imgPathStr.IndexOf(".img/") + 5) + path.Substring(0, path.Length - 1);
     }
 
+    private static string[] ParseUOL(string uolPath)
+    {
+        string[] sp = uolPath.Split("/");
+        List<string> sp2 = new List<string>();
+
+        for (int i = sp.Length - 1; i >= 0; i--)
+        {
+            if (sp[i] == "..")
+            {
+                int j;
+                for (j = i - 1; j >= 0; j--)
+                {
+                    if (sp[j] != "..") break;
+                }
+                if (j < 0) {
+                    for (j = 0; j <= i; j++)
+                    {
+                        sp2.Insert(0, sp[j]);
+                    }
+
+                    break;
+                }
+                else
+                {
+                    i = j;
+                }
+            }
+
+            sp2.Insert(0, sp[i]);
+        }
+
+        return sp2.ToArray();
+    }
+
     private static void ExtractBitmapFromWzNode(WzImageProperty wzDir, string[] sp, int i) {
-        if (i >= sp.Length && wzDir is WzCanvasProperty)
+        bool isUolDir = false;
+
+        if (wzDir is WzUOLProperty)
+        {
+            isUolDir = true;
+            string[] uolPath = ParseUOL(((WzUOLProperty) wzDir).Value.ToString());
+            
+            int j = 0;
+            while (j < uolPath.Length && j + 1 < stack.Count && uolPath[j] == "..")
+            {
+                j++;
+            }
+
+            if (j + 1 < stack.Count && j + 1 < uolPath.Length)
+            {
+                WzObject obj = stack.ToArray()[j + 1];
+
+                WzImageProperty nextWzDir;
+                if (obj is WzDirectory) {
+                    WzImage img = (WzImage) ((WzDirectory) obj)[uolPath[j]];
+                    
+                    nextWzDir = img[uolPath[j + 1]];
+                    if (nextWzDir == null) Console.WriteLine("2");
+                    j += 2;
+                }
+                else if (obj is WzImage)
+                {
+                    nextWzDir = ((WzImage) obj)[uolPath[j]];
+                    j += 1;
+                }
+                else
+                {
+                    nextWzDir = (WzImageProperty) obj;
+                }
+
+                string path = "";
+                for (int k = j; k < uolPath.Length; k++)
+                {
+                    path += uolPath[k] + "/";
+                }
+
+                nextWzDir = nextWzDir.GetFromPath(path);
+                if (nextWzDir != null)
+                {
+                    wzDir = nextWzDir;
+                }
+                else
+                {
+                    Console.WriteLine($"[ERROR] Skipping UOL '{((WzUOLProperty) wzDir).Value.ToString()}' @ '{imgPathStr}'");
+                }
+            }
+        }
+
+        if ((i >= sp.Length || isUolDir) && wzDir is WzCanvasProperty)
         {
             Bitmap bmp;
 
@@ -122,20 +212,25 @@ public class WzPngInstaller
             Console.WriteLine($"Saved into '{filePathStr2}'");
         }
         
-        if (wzDir.WzProperties != null)
+        if (!isUolDir)
         {
-            foreach (WzImageProperty wzProperty in wzDir.WzProperties)
+            if (wzDir.WzProperties != null)
             {
-                if (i >= sp.Length || IsMatchAsterisk(wzProperty.Name, sp[i]) || IsMatchRegular(wzProperty.Name, sp[i]))
+                foreach (WzImageProperty wzProperty in wzDir.WzProperties)
                 {
-                    imgPathStr = imgPathStr + wzProperty.Name + ".";
-                    
-                    ExtractBitmapFromWzNode(wzProperty, sp, i + 1);
-                    
-                    imgPathStr = imgPathStr.Substring(0, imgPathStr.Length - 1);
-                    imgPathStr = imgPathStr.Substring(0, imgPathStr.LastIndexOf(".") + 1);
-                    
-                    if (i < sp.Length && !IsMatchAsterisk(wzProperty.Name.ToLower(), sp[i]) && !sp[i].Contains("*") && !sp[i].Contains("\\")) break;
+                    if (i >= sp.Length || IsMatchAsterisk(wzProperty.Name, sp[i]) || IsMatchRegular(wzProperty.Name, sp[i]))
+                    {
+                        stack.Push(wzProperty);
+                        imgPathStr = imgPathStr + wzProperty.Name + ".";
+                        
+                        ExtractBitmapFromWzNode(wzProperty, sp, i + 1);
+                        
+                        imgPathStr = imgPathStr.Substring(0, imgPathStr.Length - 1);
+                        imgPathStr = imgPathStr.Substring(0, imgPathStr.LastIndexOf(".") + 1);
+                        stack.Pop();
+
+                        if (i < sp.Length && !IsMatchAsterisk(wzProperty.Name.ToLower(), sp[i]) && !sp[i].Contains("*") && !sp[i].Contains("\\")) break;
+                    }
                 }
             }
         }
@@ -145,22 +240,27 @@ public class WzPngInstaller
     {
         if (i >= sp.Length - 1)
         {
+            stack.Push(folder);
+
             foreach (WzImage wzDir in folder.WzImages)
             {
                 if (sp[sp.Length - 1] == "*.img" || IsMatchRegular(wzDir.Name, sp[sp.Length - 1]))
                 {
+                    stack.Push(wzDir);
                     imgPathStr = imgPathStr + wzDir.Name + "/";
 
                     foreach (WzImageProperty wzProperty in wzDir.WzProperties)
                     {
                         if (IsMatchAsterisk(wzProperty.Name, sp2[0]) || IsMatchRegular(wzProperty.Name, sp2[0]))
                         {
+                            stack.Push(wzProperty);
                             imgPathStr = imgPathStr + wzProperty.Name + ".";
                             
                             ExtractBitmapFromWzNode(wzProperty, sp2, 1);
 
                             imgPathStr = imgPathStr.Substring(0, imgPathStr.Length - 1);
                             imgPathStr = imgPathStr.Substring(0, imgPathStr.LastIndexOf("/") + 1);
+                            stack.Pop();
                             
                             if (!IsMatchAsterisk(wzProperty.Name.ToLower(), sp2[0]) && !sp2[0].Contains("*") && !sp2[0].Contains("\\")) break;
                         }
@@ -168,10 +268,13 @@ public class WzPngInstaller
 
                     imgPathStr = imgPathStr.Substring(0, imgPathStr.Length - 1);
                     imgPathStr = imgPathStr.Substring(0, imgPathStr.LastIndexOf("/") + 1);
+                    stack.Pop();
                     
                     if (sp[sp.Length - 1] != "*.img") break;
                 }
             }
+
+            stack.Pop();
         }
 
         foreach (WzDirectory wzFolder in folder.WzDirectories)
